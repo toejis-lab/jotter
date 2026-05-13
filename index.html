@@ -17,6 +17,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+  <!-- Flatpickr: 예쁜 달력 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/airbnb.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ko.js"></script>
+
   <style>
     :root {
       --bg: #f5f1e8;
@@ -430,12 +436,44 @@
       color: var(--ink);
       word-break: break-word;
       cursor: pointer;
+      white-space: pre-wrap; /* 메모장처럼 줄바꿈/공백 유지 */
     }
     .todo.done .todo-text {
       text-decoration: line-through;
       color: var(--ink-faint);
     }
     .todo.done .checkbox { opacity: 0.7; }
+
+    /* 마감일을 큼직하게 강조 */
+    .due-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 6px 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .due-banner .due-icon {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    .due-banner.overdue {
+      background: rgba(200, 65, 42, 0.08);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .due-banner.today {
+      background: rgba(184, 148, 31, 0.1);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
 
     .todo-meta {
       display: flex;
@@ -636,6 +674,29 @@
       transition: border-color 0.15s, background 0.15s;
     }
     .quick-add input[type="text"]:focus {
+      border-color: var(--ink);
+      background: var(--paper);
+    }
+    /* 메모장처럼 줄바꿈되는 입력 */
+    .quick-add textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      resize: none;
+      line-height: 1.5;
+      min-height: 44px;
+      max-height: 160px;
+      overflow-y: auto;
+      font-family: inherit;
+    }
+    .quick-add textarea:focus {
       border-color: var(--ink);
       background: var(--paper);
     }
@@ -920,13 +981,13 @@
             <line x1="4" y1="18" x2="18" y2="18"/>
           </svg>
         </button>
-        <input type="text" id="newTodoInput" placeholder="할 일을 적으세요…" autocomplete="off" />
+        <textarea id="newTodoInput" placeholder="할 일을 적으세요…  (Shift+Enter 로 줄바꿈)" autocomplete="off" rows="1"></textarea>
         <button class="quick-add-btn" id="addBtn">+</button>
       </div>
       <div class="options-panel" id="optionsPanel">
         <div class="option-group">
           <span>마감</span>
-          <input type="datetime-local" class="option-input" id="optDue" />
+          <input type="text" class="option-input" id="optDue" placeholder="날짜·시간 선택" readonly />
         </div>
         <div class="option-group">
           <span>우선</span>
@@ -961,11 +1022,11 @@
       <div class="modal-sub">세부 정보를 변경하거나 삭제할 수 있습니다.</div>
       <div class="modal-field">
         <label>내용</label>
-        <input type="text" id="editText" />
+        <textarea id="editText" rows="3" style="resize:vertical; min-height:80px;"></textarea>
       </div>
       <div class="modal-field">
         <label>마감일/시간</label>
-        <input type="datetime-local" id="editDue" />
+        <input type="text" id="editDue" placeholder="날짜·시간 선택" readonly />
       </div>
       <div class="modal-field">
         <label>우선순위</label>
@@ -1060,13 +1121,16 @@
     /* =========================================================
        상태
        ========================================================= */
-    let spaceCode = localStorage.getItem('jotter.space') || '';
-    let userName = localStorage.getItem('jotter.name') || '';
+    let spaceCode = (localStorage.getItem('jotter.space') || '').trim();
+    let userName = (localStorage.getItem('jotter.name') || '').trim();
     let todos = [];
     let currentFilter = 'all';
     let unsubscribe = null;
     let editingId = null;
     let completionPromptId = null;
+    // Flatpickr 인스턴스 (달력 UI)
+    let optDuePicker = null;
+    let editDuePicker = null;
 
     /* =========================================================
        DOM
@@ -1081,9 +1145,10 @@
     /* =========================================================
        초기화 — 양쪽 다 있을 때만 바로 진입
        ========================================================= */
-    if (spaceCode && userName) {
+    if (spaceCode.length >= 4 && userName.length >= 1) {
+      // 이미 사용 중인 사용자: setup 건너뛰고 바로 앱 진입
       enterApp();
-    } else if (spaceCode && !userName) {
+    } else if (spaceCode.length >= 4 && userName.length < 1) {
       // 코드는 있는데 이름이 없으면 이름 단계로
       $('spaceInput').value = spaceCode;
       showStep('name');
@@ -1151,10 +1216,29 @@
       $('currentSpace').value = spaceCode;
       $('currentName').value = userName;
       $('whoami').textContent = userName;
+      initDatePickers();
       subscribe();
       requestNotificationPermission(false);
       setInterval(checkReminders, 30 * 1000); // 30초마다 알림 체크
       checkReminders();
+    }
+
+    // Flatpickr 달력 초기화
+    function initDatePickers() {
+      if (typeof flatpickr === 'undefined') return;
+      const commonOpts = {
+        enableTime: true,
+        time_24hr: true,
+        dateFormat: 'Y-m-d\\TH:i',     // datetime-local 호환 포맷으로 저장 → 기존 로직 그대로 사용
+        altInput: true,
+        altFormat: 'Y년 n월 j일 (D) H:i',
+        locale: (flatpickr.l10ns && flatpickr.l10ns.ko) ? 'ko' : 'default',
+        minuteIncrement: 5,
+        position: 'auto',
+        disableMobile: false
+      };
+      optDuePicker = flatpickr('#optDue', { ...commonOpts, altInputClass: 'option-input' });
+      editDuePicker = flatpickr('#editDue', commonOpts);
     }
 
     /* =========================================================
@@ -1431,12 +1515,17 @@
     function renderTodo(t) {
       const overdueCls = !t.done && isOverdue(t.due) ? ' overdue' : '';
       const doneCls = t.done ? ' done' : '';
-      const meta = [];
+
+      // 마감일은 별도 큰 배너로 표시
+      let dueBanner = '';
       if (t.due) {
         const dueLabel = formatDue(t.due);
-        const cls = !t.done && isOverdue(t.due) ? 'due-overdue' : (isToday(t.due) ? 'due-today' : '');
-        meta.push(`<span class="meta-tag ${cls}">⏱ ${dueLabel}</span>`);
+        const cls = !t.done && isOverdue(t.due) ? ' overdue' : (isToday(t.due) ? ' today' : '');
+        dueBanner = `<div class="due-banner${cls}"><span class="due-icon">⏱</span>${dueLabel}</div>`;
       }
+
+      // 마감일을 제외한 나머지 메타 정보
+      const meta = [];
       if (t.priority) {
         meta.push(`<span class="meta-tag"><span class="priority-dot ${t.priority}"></span>${priorityLabel(t.priority)}</span>`);
       }
@@ -1485,6 +1574,7 @@
           <div class="checkbox${t.done ? ' checked' : ''}" data-id="${t.id}"></div>
           <div class="todo-body">
             <div class="todo-text" data-id="${t.id}">${escapeHtml(t.text)}</div>
+            ${dueBanner}
             ${meta.length ? `<div class="todo-meta">${meta.join('')}</div>` : ''}
             ${noteBlock}
             ${completionNoteBlock}
@@ -1568,9 +1658,19 @@
 
     const newInput = $('newTodoInput');
     $('addBtn').addEventListener('click', submitNew);
+    // Enter = 제출, Shift+Enter = 줄바꿈 (메모장처럼)
     newInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') submitNew();
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        submitNew();
+      }
     });
+    // 입력 내용에 따라 textarea 높이 자동 조절
+    function autoResize() {
+      newInput.style.height = 'auto';
+      newInput.style.height = Math.min(newInput.scrollHeight, 160) + 'px';
+    }
+    newInput.addEventListener('input', autoResize);
 
     function submitNew() {
       const text = newInput.value.trim();
@@ -1583,7 +1683,10 @@
         repeat: $('optRepeat').value || null
       });
       newInput.value = '';
+      autoResize();
       $('optDue').value = '';
+      // Flatpickr 인스턴스가 있으면 그것도 초기화
+      if (optDuePicker) optDuePicker.clear();
       $('optPriority').value = '';
       $('optCategory').value = '';
       $('optRepeat').value = '';
@@ -1605,7 +1708,12 @@
       if (!t) return;
       editingId = id;
       $('editText').value = t.text || '';
-      $('editDue').value = t.due || '';
+      if (editDuePicker) {
+        if (t.due) editDuePicker.setDate(t.due, false);
+        else editDuePicker.clear();
+      } else {
+        $('editDue').value = t.due || '';
+      }
       $('editPriority').value = t.priority || '';
       $('editCategory').value = t.category || '';
       $('editRepeat').value = t.repeat || '';
