@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <title>할 일 — Jotter</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Jotter" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Flatpickr: 예쁜 달력 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/airbnb.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ko.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --bg-tint: #ede7d8;
+      --ink: #1a1a1a;
+      --ink-soft: #4a4a4a;
+      --ink-faint: #8a8a82;
+      --paper: #fbf8f0;
+      --accent: #c8412a;
+      --accent-soft: #e8a89a;
+      --gold: #b8941f;
+      --line: #d6cfbe;
+      --line-soft: #e6dfce;
+      --done: #6b8e5a;
+      --priority-high: #c8412a;
+      --priority-mid: #d4a017;
+      --priority-low: #8aa888;
+      --shadow: 0 1px 0 rgba(26,26,26,0.04), 0 4px 16px rgba(26,26,26,0.06);
+      --shadow-lift: 0 1px 0 rgba(26,26,26,0.06), 0 12px 36px rgba(26,26,26,0.12);
+      --serif: 'Fraunces', 'Noto Sans KR', Georgia, serif;
+      --sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 12% 8%, rgba(200,65,42,0.04) 0%, transparent 35%),
+        radial-gradient(circle at 88% 92%, rgba(184,148,31,0.05) 0%, transparent 40%);
+      min-height: 100vh;
+    }
+
+    /* Setup screen */
+    .setup {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+    .setup-card {
+      max-width: 460px;
+      width: 100%;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 48px 36px;
+      box-shadow: var(--shadow-lift);
+      position: relative;
+    }
+    .setup-card::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 24px; right: 24px;
+      height: 4px;
+      background: var(--accent);
+    }
+    .setup-logo {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 28px;
+      display: block;
+    }
+    .setup-logo svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 6px 20px rgba(26,26,26,0.18));
+    }
+    .setup-step { display: none; animation: stepIn 0.35s ease; }
+    .setup-step.active { display: block; }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .setup-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 16px;
+    }
+    .setup-title {
+      font-family: var(--serif);
+      font-size: 42px;
+      line-height: 1.05;
+      font-weight: 500;
+      font-style: italic;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .setup-sub {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .setup label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 8px;
+    }
+    .setup input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .setup input:focus { border-color: var(--ink); background: var(--paper); }
+    .setup-help {
+      font-size: 12px;
+      color: var(--ink-faint);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .setup-buttons { display: flex; gap: 12px; margin-top: 24px; }
+    .btn {
+      flex: 1;
+      padding: 14px 20px;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--bg);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .btn:hover { background: #000; }
+    .btn:active { transform: scale(0.98); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-ghost:hover { background: var(--bg-tint); }
+
+    /* App */
+    .app { display: none; min-height: 100vh; padding-bottom: 120px; }
+    .app.active { display: block; }
+
+    header {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--line-soft);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 500;
+      font-style: italic;
+      letter-spacing: -0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      border-radius: 6px;
+    }
+    .brand-dot { color: var(--accent); }
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .whoami {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-transform: none;
+      letter-spacing: 0;
+      padding-right: 4px;
+      border-right: 1px solid var(--line);
+      margin-right: 4px;
+    }
+    .whoami:empty { display: none; }
+    .sync-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ink-faint);
+      transition: background 0.3s;
+    }
+    .sync-dot.online { background: var(--done); animation: pulse 2s infinite; }
+    .sync-dot.error { background: var(--accent); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 2px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .icon-btn:hover { color: var(--ink); background: var(--bg-tint); }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Reminder banner */
+    .reminder-banner {
+      margin: 20px 0 0;
+      padding: 14px 18px;
+      background: var(--accent);
+      color: var(--paper);
+      border-radius: 3px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      animation: slideDown 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+    .reminder-banner.show { display: flex; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .reminder-banner .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .reminder-banner .msg { flex: 1; font-size: 14px; line-height: 1.4; }
+    .reminder-banner button {
+      background: none;
+      border: 1px solid rgba(251,248,240,0.4);
+      color: var(--paper);
+      padding: 4px 10px;
+      border-radius: 2px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--sans);
+    }
+    .reminder-banner button:hover { background: rgba(251,248,240,0.15); }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 4px;
+      margin: 24px 0 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border: 1px solid var(--line);
+      background: transparent;
+      border-radius: 100px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: all 0.15s;
+      font-family: var(--sans);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-chip:hover { border-color: var(--ink-soft); }
+    .filter-chip.active {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+    .filter-chip .count {
+      font-family: var(--mono);
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 32px;
+    }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed var(--line);
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 500;
+      font-style: italic;
+      color: var(--ink);
+    }
+    .section-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--ink-faint);
+    }
+
+    /* Todo items */
+    .todo-list { list-style: none; }
+    .todo {
+      display: flex;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line-soft);
+      align-items: flex-start;
+      position: relative;
+      transition: opacity 0.2s;
+    }
+    .todo:last-child { border-bottom: none; }
+    .todo.overdue::before {
+      content: '';
+      position: absolute;
+      left: -12px;
+      top: 18px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .checkbox {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid var(--ink);
+      border-radius: 2px;
+      cursor: pointer;
+      margin-top: 2px;
+      position: relative;
+      transition: all 0.15s;
+      background: var(--paper);
+    }
+    .checkbox:hover { border-color: var(--accent); }
+    .checkbox.checked {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+    .checkbox.checked::after {
+      content: '';
+      position: absolute;
+      left: 5px; top: 1px;
+      width: 7px; height: 12px;
+      border: solid var(--bg);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-text {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--ink);
+      word-break: break-word;
+      cursor: pointer;
+      white-space: pre-wrap; /* 메모장처럼 줄바꿈/공백 유지 */
+    }
+    .todo.done .todo-text {
+      text-decoration: line-through;
+      color: var(--ink-faint);
+    }
+    .todo.done .checkbox { opacity: 0.7; }
+
+    /* 마감일을 큼직하게 강조 */
+    .due-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 6px 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .due-banner .due-icon {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    .due-banner.overdue {
+      background: rgba(200, 65, 42, 0.08);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .due-banner.today {
+      background: rgba(184, 148, 31, 0.1);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .todo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+      align-items: center;
+    }
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .meta-tag.due-overdue { color: var(--accent); font-weight: 500; }
+    .meta-tag.due-today { color: var(--gold); font-weight: 500; }
+    .category-tag {
+      padding: 1px 8px;
+      background: var(--bg-tint);
+      border-radius: 100px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .priority-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .priority-dot.high { background: var(--priority-high); }
+    .priority-dot.mid { background: var(--priority-mid); }
+    .priority-dot.low { background: var(--priority-low); }
+
+    .by-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--ink-faint);
+      font-family: var(--sans);
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+    .who-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* 메모 / 완료 코멘트 */
+    .todo-note, .completion-note {
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+      padding: 8px 10px 8px 12px;
+      background: var(--bg-tint);
+      border-left: 2px solid var(--line);
+      border-radius: 0 2px 2px 0;
+      word-break: break-word;
+    }
+    .todo.done .todo-note,
+    .todo.done .completion-note {
+      opacity: 0.85;
+    }
+    .completion-note {
+      border-left-color: var(--done);
+      background: rgba(107, 142, 90, 0.08);
+    }
+    .note-mark {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-right: 6px;
+      vertical-align: 0.5px;
+    }
+    .note-mark.done { color: var(--done); }
+
+    /* 인라인 완료 코멘트 폼 */
+    .completion-form {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      align-items: center;
+      animation: promptIn 0.2s ease;
+    }
+    @keyframes promptIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .completion-form input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 13px;
+      background: var(--paper);
+      color: var(--ink);
+      outline: none;
+      min-width: 0;
+    }
+    .completion-form input[type="text"]:focus {
+      border-color: var(--ink);
+    }
+    .completion-form button {
+      flex-shrink: 0;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .completion-form .cp-save {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+    .completion-form button:hover { transform: translateY(-1px); }
+    .todo.has-prompt {
+      background: linear-gradient(to right, rgba(200,65,42,0.04), transparent 60%);
+    }
+
+    .todo-actions {
+      opacity: 0;
+      display: flex;
+      gap: 4px;
+      transition: opacity 0.15s;
+    }
+    .todo:hover .todo-actions,
+    .todo:focus-within .todo-actions { opacity: 1; }
+    @media (hover: none) {
+      .todo-actions { opacity: 1; }
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--ink-faint);
+    }
+    .empty-icon {
+      font-family: var(--serif);
+      font-size: 72px;
+      font-style: italic;
+      color: var(--line);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .empty-text {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 18px;
+      color: var(--ink-soft);
+    }
+    .empty-sub { font-size: 13px; margin-top: 6px; }
+
+    /* Quick add bar */
+    .quick-add {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+      padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
+      z-index: 20;
+      box-shadow: 0 -8px 24px rgba(26,26,26,0.05);
+    }
+    .quick-add-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .quick-add input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .quick-add input[type="text"]:focus {
+      border-color: var(--ink);
+      background: var(--paper);
+    }
+    /* 메모장처럼 줄바꿈되는 입력 */
+    .quick-add textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      resize: none;
+      line-height: 1.5;
+      min-height: 44px;
+      max-height: 160px;
+      overflow-y: auto;
+      font-family: inherit;
+    }
+    .quick-add textarea:focus {
+      border-color: var(--ink);
+      background: var(--paper);
+    }
+    .quick-add-btn {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      border: none;
+      background: var(--ink);
+      color: var(--bg);
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .quick-add-btn:hover { background: #000; }
+    .quick-add-btn:active { transform: scale(0.95); }
+    .options-btn {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .options-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .options-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    /* Options panel */
+    .options-panel {
+      max-width: 720px;
+      margin: 0 auto;
+      display: none;
+      padding-top: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .options-panel.show { display: flex; }
+    .option-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .option-input {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--ink);
+      outline: none;
+    }
+    .option-input:focus { border-color: var(--ink); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,26,0.4);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      max-width: 460px;
+      width: 100%;
+      padding: 32px;
+      box-shadow: var(--shadow-lift);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal-title {
+      font-family: var(--serif);
+      font-size: 26px;
+      font-style: italic;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .modal-sub {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 6px;
+    }
+    .modal-field input,
+    .modal-field select,
+    .modal-field textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--ink);
+      outline: none;
+      resize: vertical;
+    }
+    .modal-field textarea {
+      min-height: 56px;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .modal-field input:focus,
+    .modal-field select:focus,
+    .modal-field textarea:focus { border-color: var(--ink); }
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    /* 설정 모달 - 위험 영역 (로그아웃 등) */
+    .danger-zone {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--line);
+    }
+    .danger-zone-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 10px;
+    }
+    .danger-zone-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .danger-zone-help {
+      font-size: 12px;
+      color: var(--ink-faint);
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    .btn-danger {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--paper);
+    }
+    .btn-danger:hover { background: #a8341f; border-color: #a8341f; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: 2px;
+      font-size: 13px;
+      opacity: 0;
+      transition: all 0.25s;
+      z-index: 200;
+      pointer-events: none;
+      box-shadow: var(--shadow-lift);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 540px) {
+      header { padding: 20px 18px 16px; }
+      main { padding: 0 18px; }
+      .quick-add { padding-left: 18px; padding-right: 18px; }
+      .brand { font-size: 24px; }
+      .setup-card { padding: 36px 24px; }
+      .setup-title { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SETUP SCREEN -->
+  <div class="setup" id="setupScreen">
+    <div class="setup-card">
+      <!-- 로고 -->
+      <div class="setup-logo">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="100" height="100" rx="22" fill="#1a1a1a"/>
+          <path d="M50 30 L50 62 Q50 78 35 78 Q22 78 19 67" stroke="#f5e6c8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="50" cy="22" r="6" fill="#c8412a"/>
+        </svg>
+      </div>
+
+      <!-- STEP 1: Space Code -->
+      <div class="setup-step active" id="step-space">
+        <div class="setup-eyebrow">Step 01 / 02 · Space</div>
+        <h1 class="setup-title">생각났을 때,<br>바로.</h1>
+        <p class="setup-sub">함께 쓰는 사람들끼리 같은 <b>공간 코드</b>를 입력하면 자동으로 같은 목록을 공유합니다. 가입은 필요 없어요.</p>
+
+        <label for="spaceInput">Space Code</label>
+        <input type="text" id="spaceInput" placeholder="예: kim-family-list" autocomplete="off" />
+        <div class="setup-help">함께 쓸 사람들에게 이 코드를 알려주세요. 추측하기 어려운 코드를 쓰는 것이 좋습니다.</div>
+
+        <div class="setup-buttons">
+          <button class="btn btn-ghost" id="genCodeBtn">자동 생성</button>
+          <button class="btn" id="toNameBtn">다음</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Name -->
+      <div class="setup-step" id="step-name">
+        <div class="setup-eyebrow">Step 02 / 02 · You</div>
+        <h1 class="setup-title">어떻게 부를까요?</h1>
+        <p class="setup-sub">같이 쓰는 사람들이 누가 무엇을 적고 완료했는지 알 수 있게 이름이나 별명을 입력하세요.</p>
+
+        <label for="nameInput">Name</label>
+        <input type="text" id="nameInput" placeholder="예: 민수, mom, 김부장" autocomplete="off" maxlength="20" />
+        <div class="setup-help">이 기기에만 저장됩니다. 언제든지 설정에서 바꿀 수 있어요.</div>
+
+        <div class="setup-buttons">
+          <button class="btn btn-ghost" id="backToSpaceBtn">이전</button>
+          <button class="btn" id="enterBtn">시작하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="app" id="appScreen">
+    <header>
+      <div class="header-inner">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="100" height="100" rx="22" fill="#1a1a1a"/>
+            <path d="M50 30 L50 62 Q50 78 35 78 Q22 78 19 67" stroke="#f5e6c8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="50" cy="22" r="6" fill="#c8412a"/>
+          </svg>
+          <span>Jotter<span class="brand-dot">.</span></span>
+        </div>
+        <div class="header-meta">
+          <span class="whoami" id="whoami" title="현재 사용자"></span>
+          <span class="sync-status">
+            <span class="sync-dot" id="syncDot"></span>
+            <span id="syncText">연결중</span>
+          </span>
+          <button class="icon-btn" id="notifBtn" title="알림 권한">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="settingsBtn" title="설정">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="reminder-banner" id="reminderBanner">
+        <span class="label">놓치지 마세요</span>
+        <span class="msg" id="reminderMsg"></span>
+        <button id="dismissReminder">확인</button>
+      </div>
+
+      <div class="filters" id="filters">
+        <button class="filter-chip active" data-filter="all">전체 <span class="count" id="count-all">0</span></button>
+        <button class="filter-chip" data-filter="today">오늘 <span class="count" id="count-today">0</span></button>
+        <button class="filter-chip" data-filter="overdue">지난 <span class="count" id="count-overdue">0</span></button>
+        <button class="filter-chip" data-filter="active">미완료 <span class="count" id="count-active">0</span></button>
+        <button class="filter-chip" data-filter="done">완료 <span class="count" id="count-done">0</span></button>
+      </div>
+
+      <div id="todoContainer"></div>
+    </main>
+
+    <div class="quick-add">
+      <div class="quick-add-inner">
+        <button class="options-btn" id="toggleOptions" title="옵션">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="14" y2="12"/>
+            <line x1="4" y1="18" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <textarea id="newTodoInput" placeholder="할 일을 적으세요…  (Enter로 추가, Shift+Enter로 줄바꿈)" autocomplete="off" rows="1"></textarea>
+        <button class="quick-add-btn" id="addBtn">+</button>
+      </div>
+      <div class="options-panel" id="optionsPanel">
+        <div class="option-group">
+          <span>마감</span>
+          <input type="text" class="option-input" id="optDue" placeholder="날짜·시간 선택" readonly />
+        </div>
+        <div class="option-group">
+          <span>우선</span>
+          <select class="option-input" id="optPriority">
+            <option value="">없음</option>
+            <option value="high">높음</option>
+            <option value="mid">보통</option>
+            <option value="low">낮음</option>
+          </select>
+        </div>
+        <div class="option-group">
+          <span>카테고리</span>
+          <input type="text" class="option-input" id="optCategory" placeholder="업무, 개인…" />
+        </div>
+        <div class="option-group">
+          <span>반복</span>
+          <select class="option-input" id="optRepeat">
+            <option value="">없음</option>
+            <option value="daily">매일</option>
+            <option value="weekly">매주</option>
+            <option value="monthly">매월</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal">
+      <div class="modal-title">할 일 수정</div>
+      <div class="modal-sub">세부 정보를 변경하거나 삭제할 수 있습니다.</div>
+      <div class="modal-field">
+        <label>내용</label>
+        <textarea id="editText" rows="3" style="resize:vertical; min-height:80px;"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>마감일/시간</label>
+        <input type="text" id="editDue" placeholder="날짜·시간 선택" readonly />
+      </div>
+      <div class="modal-field">
+        <label>우선순위</label>
+        <select id="editPriority">
+          <option value="">없음</option>
+          <option value="high">높음</option>
+          <option value="mid">보통</option>
+          <option value="low">낮음</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>카테고리</label>
+        <input type="text" id="editCategory" />
+      </div>
+      <div class="modal-field">
+        <label>반복</label>
+        <select id="editRepeat">
+          <option value="">없음</option>
+          <option value="daily">매일</option>
+          <option value="weekly">매주</option>
+          <option value="monthly">매월</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>메모 (선택)</label>
+        <textarea id="editNote" rows="2" placeholder="상세 내용, 참고 링크, 맥락 등"></textarea>
+      </div>
+      <div class="modal-field" id="editCompletionWrap" style="display:none;">
+        <label>완료 코멘트</label>
+        <textarea id="editCompletionNote" rows="2" placeholder="완료하면서 남길 한 마디"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-ghost" id="deleteBtn">삭제</button>
+        <button class="btn btn-ghost" id="cancelEditBtn">취소</button>
+        <button class="btn" id="saveEditBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal">
+      <div class="modal-title">설정</div>
+      <div class="modal-sub">이름이나 공간 코드를 변경할 수 있습니다.</div>
+      <div class="modal-field">
+        <label>내 이름</label>
+        <input type="text" id="currentName" maxlength="20" />
+      </div>
+      <div class="modal-field">
+        <label>Space Code (함께 쓸 사람에게 공유)</label>
+        <input type="text" id="currentSpace" readonly />
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-ghost" id="closeSettingsBtn">닫기</button>
+        <button class="btn" id="saveSettingsBtn">저장</button>
+      </div>
+      <div class="danger-zone">
+        <div class="danger-zone-label">계정 / 공간</div>
+        <div class="danger-zone-buttons">
+          <button class="btn btn-ghost" id="changeSpaceBtn">공간 나가기</button>
+          <button class="btn btn-danger" id="logoutBtn">로그아웃</button>
+        </div>
+        <div class="danger-zone-help">로그아웃하면 이 기기에서 이름과 공간 코드가 모두 지워집니다. 데이터는 서버에 남아 있어 같은 코드로 다시 들어오면 그대로입니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETION NOTE MODAL -->
+  <div class="modal-backdrop" id="completionModal">
+    <div class="modal">
+      <div class="modal-title">완료했어요 ✓</div>
+      <div class="modal-sub" id="completionModalText">한 마디 남겨두면 나중에 돌아볼 때 도움이 됩니다.</div>
+      <div class="modal-field">
+        <label>완료 코멘트 (선택)</label>
+        <textarea id="completionNoteInput" rows="3" maxlength="200" placeholder="어떻게 끝냈는지, 다음을 위한 메모 등…"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-ghost" id="completionSkipBtn">건너뛰기</button>
+        <button class="btn" id="completionSaveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, doc, onSnapshot,
+      setDoc, deleteDoc, updateDoc, serverTimestamp, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    /* =========================================================
+       FIREBASE 설정 — 여기에 본인의 Firebase 프로젝트 설정을 넣으세요.
+       ========================================================= */
+   const firebaseConfig = {
+  apiKey: "AIzaSyAr3g0z3PenN37qQEMhP2UCo8b2YFFW0iQ",
+  authDomain: "stay-jotter.firebaseapp.com",
+  projectId: "stay-jotter",
+  storageBucket: "stay-jotter.firebasestorage.app",
+  messagingSenderId: "754069796123",
+  appId: "1:754069796123:web:eba0ab933d763ad4eacfbe"
+};
+
+    // 데모/오프라인 모드 (Firebase 설정 안 했을 때 로컬에서만 동작)
+    const FIREBASE_READY = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+    let db = null;
+    if (FIREBASE_READY) {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    }
+
+    /* =========================================================
+       상태
+       ========================================================= */
+    let spaceCode = (localStorage.getItem('jotter.space') || '').trim();
+    let userName = (localStorage.getItem('jotter.name') || '').trim();
+    let todos = [];
+    let currentFilter = 'all';
+    let unsubscribe = null;
+    let editingId = null;
+    // Flatpickr 인스턴스 (달력 UI)
+    let optDuePicker = null;
+    let editDuePicker = null;
+
+    /* =========================================================
+       DOM
+       ========================================================= */
+    const $ = (id) => document.getElementById(id);
+    const setupScreen = $('setupScreen');
+    const appScreen = $('appScreen');
+    const todoContainer = $('todoContainer');
+    const syncDot = $('syncDot');
+    const syncText = $('syncText');
+
+    /* =========================================================
+       초기화 — 양쪽 다 있을 때만 바로 진입
+       ========================================================= */
+    if (spaceCode.length >= 4 && userName.length >= 1) {
+      // 이미 사용 중인 사용자: setup 건너뛰고 바로 앱 진입
+      enterApp();
+    } else if (spaceCode.length >= 4 && userName.length < 1) {
+      // 코드는 있는데 이름이 없으면 이름 단계로
+      $('spaceInput').value = spaceCode;
+      showStep('name');
+    }
+
+    function showStep(name) {
+      document.querySelectorAll('.setup-step').forEach(el => el.classList.remove('active'));
+      $('step-' + name).classList.add('active');
+      // 포커스
+      setTimeout(() => {
+        if (name === 'space') $('spaceInput').focus();
+        if (name === 'name') $('nameInput').focus();
+      }, 50);
+    }
+
+    $('genCodeBtn').addEventListener('click', () => {
+      const adjs = ['quiet','bright','calm','warm','swift','gentle','bold','keen'];
+      const nouns = ['river','meadow','harbor','summit','grove','cove','field','ridge'];
+      const code = adjs[Math.floor(Math.random()*adjs.length)] + '-' +
+                   nouns[Math.floor(Math.random()*nouns.length)] + '-' +
+                   Math.floor(1000 + Math.random()*9000);
+      $('spaceInput').value = code;
+    });
+
+    // Step 1 → Step 2
+    $('toNameBtn').addEventListener('click', () => {
+      const val = $('spaceInput').value.trim();
+      if (val.length < 4) {
+        toast('4자 이상 입력해 주세요');
+        return;
+      }
+      spaceCode = val.replace(/[^a-zA-Z0-9가-힣\-_]/g, '');
+      localStorage.setItem('jotter.space', spaceCode);
+      // 기존 이름이 있으면 이름 단계 input에 채워줌
+      if (userName) $('nameInput').value = userName;
+      showStep('name');
+    });
+
+    // Step 2 → 앱 진입
+    $('enterBtn').addEventListener('click', () => {
+      const name = $('nameInput').value.trim();
+      if (name.length < 1) {
+        toast('이름을 입력해 주세요');
+        return;
+      }
+      userName = name.slice(0, 20);
+      localStorage.setItem('jotter.name', userName);
+      enterApp();
+    });
+
+    // 이전 버튼
+    $('backToSpaceBtn').addEventListener('click', () => showStep('space'));
+
+    // Enter 키 핸들링
+    $('spaceInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('toNameBtn').click();
+    });
+    $('nameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('enterBtn').click();
+    });
+
+    function enterApp() {
+      setupScreen.style.display = 'none';
+      appScreen.classList.add('active');
+      $('currentSpace').value = spaceCode;
+      $('currentName').value = userName;
+      $('whoami').textContent = userName;
+      initDatePickers();
+      subscribe();
+      requestNotificationPermission(false);
+      setInterval(checkReminders, 30 * 1000); // 30초마다 알림 체크
+      checkReminders();
+    }
+
+    // Flatpickr 달력 초기화
+    function initDatePickers() {
+      if (typeof flatpickr === 'undefined') return;
+      const commonOpts = {
+        enableTime: true,
+        time_24hr: true,
+        dateFormat: 'Y-m-d\\TH:i',     // datetime-local 호환 포맷으로 저장 → 기존 로직 그대로 사용
+        altInput: true,
+        altFormat: 'Y년 n월 j일 (D) H:i',
+        locale: (flatpickr.l10ns && flatpickr.l10ns.ko) ? 'ko' : 'default',
+        minuteIncrement: 5,
+        position: 'auto',
+        disableMobile: false
+      };
+      optDuePicker = flatpickr('#optDue', { ...commonOpts, altInputClass: 'option-input' });
+      editDuePicker = flatpickr('#editDue', commonOpts);
+    }
+
+    /* =========================================================
+       Firestore 구독
+       ========================================================= */
+    function subscribe() {
+      if (unsubscribe) unsubscribe();
+
+      if (!FIREBASE_READY) {
+        // 로컬 모드
+        setSync('local', '로컬');
+        loadLocal();
+        return;
+      }
+
+      setSync('loading', '연결중');
+      try {
+        const q = query(
+          collection(db, 'spaces', spaceCode, 'todos'),
+          orderBy('createdAt', 'desc')
+        );
+        unsubscribe = onSnapshot(q, (snap) => {
+          todos = [];
+          snap.forEach((d) => {
+            todos.push({ id: d.id, ...d.data() });
+          });
+          render();
+          setSync('online', '동기화됨');
+        }, (err) => {
+          console.error(err);
+          setSync('error', '오프라인');
+          loadLocal();
+        });
+      } catch (e) {
+        console.error(e);
+        setSync('error', '오류');
+        loadLocal();
+      }
+    }
+
+    function loadLocal() {
+      const local = localStorage.getItem('jotter.todos.' + spaceCode);
+      todos = local ? JSON.parse(local) : [];
+      render();
+    }
+    function saveLocal() {
+      localStorage.setItem('jotter.todos.' + spaceCode, JSON.stringify(todos));
+    }
+
+    function setSync(state, text) {
+      syncDot.className = 'sync-dot' + (state === 'online' ? ' online' : state === 'error' ? ' error' : '');
+      syncText.textContent = text;
+    }
+
+    /* =========================================================
+       CRUD
+       ========================================================= */
+    async function addTodo(data) {
+      const id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      const payload = {
+        text: data.text,
+        done: false,
+        due: data.due || null,
+        priority: data.priority || null,
+        category: data.category || null,
+        repeat: data.repeat || null,
+        note: data.note || null,
+        completionNote: null,
+        createdBy: userName || 'Anonymous',
+        completedBy: null,
+        createdAt: Date.now(),
+        completedAt: null
+      };
+      if (FIREBASE_READY) {
+        try {
+          await setDoc(doc(db, 'spaces', spaceCode, 'todos', id), {
+            ...payload,
+            createdAt: serverTimestamp()
+          });
+        } catch (e) {
+          toast('저장 실패: ' + e.message);
+          todos.unshift({ id, ...payload });
+          saveLocal();
+          render();
+        }
+      } else {
+        todos.unshift({ id, ...payload });
+        saveLocal();
+        render();
+      }
+    }
+
+    async function updateTodo(id, patch) {
+      if (FIREBASE_READY) {
+        try {
+          await updateDoc(doc(db, 'spaces', spaceCode, 'todos', id), patch);
+        } catch (e) { toast('수정 실패'); }
+      } else {
+        const i = todos.findIndex(t => t.id === id);
+        if (i >= 0) todos[i] = { ...todos[i], ...patch };
+        saveLocal();
+        render();
+      }
+    }
+
+    async function removeTodo(id) {
+      if (FIREBASE_READY) {
+        try {
+          await deleteDoc(doc(db, 'spaces', spaceCode, 'todos', id));
+        } catch (e) { toast('삭제 실패'); }
+      } else {
+        todos = todos.filter(t => t.id !== id);
+        saveLocal();
+        render();
+      }
+    }
+
+    async function toggleDone(todo, completionNote = null) {
+      const nowDone = !todo.done;
+      const patch = {
+        done: nowDone,
+        completedAt: nowDone ? Date.now() : null,
+        completedBy: nowDone ? (userName || 'Anonymous') : null
+      };
+      // 완료 코멘트 처리: 적었으면 저장, 안 적었으면 기존 값 유지
+      if (nowDone && completionNote && completionNote.trim()) {
+        patch.completionNote = completionNote.trim().slice(0, 200);
+      }
+      // 체크 해제 시 코멘트는 그대로 두는 게 좋음 (다시 체크할 수도 있으니)
+      await updateTodo(todo.id, patch);
+
+      // 반복 일정: 완료 시 다음 일정 자동 생성
+      if (nowDone && todo.repeat && todo.due) {
+        const nextDue = nextRepeatDate(todo.due, todo.repeat);
+        if (nextDue) {
+          await addTodo({
+            text: todo.text,
+            due: nextDue,
+            priority: todo.priority,
+            category: todo.category,
+            repeat: todo.repeat,
+            note: todo.note
+          });
+        }
+      }
+    }
+
+    function nextRepeatDate(due, repeat) {
+      const d = new Date(due);
+      if (isNaN(d)) return null;
+      if (repeat === 'daily') d.setDate(d.getDate() + 1);
+      else if (repeat === 'weekly') d.setDate(d.getDate() + 7);
+      else if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+      else return null;
+      // datetime-local 포맷
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    /* =========================================================
+       렌더링
+       ========================================================= */
+    function render() {
+      const counts = {
+        all: todos.length,
+        today: todos.filter(t => !t.done && isToday(t.due)).length,
+        overdue: todos.filter(t => !t.done && isOverdue(t.due)).length,
+        active: todos.filter(t => !t.done).length,
+        done: todos.filter(t => t.done).length
+      };
+      Object.keys(counts).forEach(k => {
+        const el = $('count-' + k);
+        if (el) el.textContent = counts[k];
+      });
+
+      let filtered = todos;
+      if (currentFilter === 'today') filtered = todos.filter(t => !t.done && isToday(t.due));
+      else if (currentFilter === 'overdue') filtered = todos.filter(t => !t.done && isOverdue(t.due));
+      else if (currentFilter === 'active') filtered = todos.filter(t => !t.done);
+      else if (currentFilter === 'done') filtered = todos.filter(t => t.done);
+
+      if (filtered.length === 0) {
+        todoContainer.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">∅</div>
+            <div class="empty-text">${emptyMessage()}</div>
+            <div class="empty-sub">아래 입력창에 적어보세요</div>
+          </div>`;
+        return;
+      }
+
+      // 그룹화
+      const groups = currentFilter === 'all' ? groupTodos(filtered) : [{ title: '', items: filtered }];
+
+      todoContainer.innerHTML = groups.map(g => `
+        ${g.title ? `<div class="section-head"><span class="section-title">${g.title}</span><span class="section-count">${g.items.length}</span></div>` : ''}
+        <ul class="todo-list">
+          ${g.items.map(renderTodo).join('')}
+        </ul>
+      `).join('');
+
+      // 이벤트 위임
+      todoContainer.querySelectorAll('.checkbox').forEach(el => {
+        el.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = el.dataset.id;
+          const t = todos.find(x => x.id === id);
+          if (!t) return;
+          if (t.done) {
+            // 완료 해제는 바로
+            await toggleDone(t);
+          } else {
+            // 완료 처리: 먼저 done 상태로 저장하고, 코멘트 모달 표시
+            await toggleDone(t);
+            openCompletionModal(id, t.text);
+          }
+        });
+      });
+      todoContainer.querySelectorAll('.todo-text').forEach(el => {
+        el.addEventListener('click', () => openEdit(el.dataset.id));
+      });
+      todoContainer.querySelectorAll('.edit-btn').forEach(el => {
+        el.addEventListener('click', () => openEdit(el.dataset.id));
+      });
+    }
+
+    /* =========================================================
+       완료 코멘트 모달
+       ========================================================= */
+    let completingId = null;
+    function openCompletionModal(id, text) {
+      completingId = id;
+      $('completionModalText').textContent = `"${text.length > 40 ? text.slice(0,40) + '…' : text}"  —  한 마디 남겨두면 나중에 돌아볼 때 도움이 됩니다.`;
+      $('completionNoteInput').value = '';
+      $('completionModal').classList.add('show');
+      setTimeout(() => $('completionNoteInput').focus(), 60);
+    }
+    function closeCompletionModal() {
+      completingId = null;
+      $('completionModal').classList.remove('show');
+    }
+    $('completionSkipBtn').addEventListener('click', closeCompletionModal);
+    $('completionSaveBtn').addEventListener('click', async () => {
+      if (!completingId) return closeCompletionModal();
+      const val = $('completionNoteInput').value.trim();
+      if (val) {
+        await updateTodo(completingId, { completionNote: val.slice(0, 200) });
+        toast('완료 코멘트가 저장되었습니다');
+      }
+      closeCompletionModal();
+    });
+    // 코멘트 모달에서 Ctrl/Cmd+Enter 또는 그냥 Enter (단독)로 저장
+    $('completionNoteInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        $('completionSaveBtn').click();
+      } else if (e.key === 'Escape') {
+        closeCompletionModal();
+      }
+    });
+
+    function groupTodos(items) {
+      const overdue = items.filter(t => !t.done && isOverdue(t.due));
+      const today = items.filter(t => !t.done && isToday(t.due));
+      const upcoming = items.filter(t => !t.done && t.due && !isToday(t.due) && !isOverdue(t.due));
+      const someday = items.filter(t => !t.done && !t.due);
+      const done = items.filter(t => t.done);
+
+      const out = [];
+      if (overdue.length) out.push({ title: '지난 일', items: overdue });
+      if (today.length) out.push({ title: '오늘', items: today });
+      if (upcoming.length) out.push({ title: '예정', items: upcoming });
+      if (someday.length) out.push({ title: '언젠가', items: someday });
+      if (done.length) out.push({ title: '완료', items: done });
+      return out;
+    }
+
+    function renderTodo(t) {
+      const overdueCls = !t.done && isOverdue(t.due) ? ' overdue' : '';
+      const doneCls = t.done ? ' done' : '';
+
+      // 마감일은 별도 큰 배너로 표시
+      let dueBanner = '';
+      if (t.due) {
+        const dueLabel = formatDue(t.due);
+        const cls = !t.done && isOverdue(t.due) ? ' overdue' : (isToday(t.due) ? ' today' : '');
+        dueBanner = `<div class="due-banner${cls}"><span class="due-icon">⏱</span>${dueLabel}</div>`;
+      }
+
+      // 마감일을 제외한 나머지 메타 정보
+      const meta = [];
+      if (t.priority) {
+        meta.push(`<span class="meta-tag"><span class="priority-dot ${t.priority}"></span>${priorityLabel(t.priority)}</span>`);
+      }
+      if (t.category) {
+        meta.push(`<span class="category-tag">${escapeHtml(t.category)}</span>`);
+      }
+      if (t.repeat) {
+        meta.push(`<span class="meta-tag">↻ ${repeatLabel(t.repeat)}</span>`);
+      }
+      // 작성자 / 완료자
+      const author = t.createdBy || 'Anonymous';
+      const authorColor = nameColor(author);
+      let byLine;
+      if (t.done && t.completedBy) {
+        const finisher = t.completedBy;
+        const finisherColor = nameColor(finisher);
+        if (finisher === author) {
+          byLine = `<span class="by-line"><span class="who-dot" style="background:${authorColor}"></span>${escapeHtml(author)} · 완료</span>`;
+        } else {
+          byLine = `<span class="by-line"><span class="who-dot" style="background:${authorColor}"></span>${escapeHtml(author)} → <span class="who-dot" style="background:${finisherColor}"></span>${escapeHtml(finisher)} 완료</span>`;
+        }
+      } else {
+        byLine = `<span class="by-line"><span class="who-dot" style="background:${authorColor}"></span>${escapeHtml(author)}</span>`;
+      }
+      meta.push(byLine);
+
+      // 본문 추가 요소들
+      const noteBlock = t.note
+        ? `<div class="todo-note"><span class="note-mark">메모</span> ${escapeHtml(t.note)}</div>`
+        : '';
+      const completionNoteBlock = (t.done && t.completionNote)
+        ? `<div class="completion-note"><span class="note-mark done">완료 코멘트</span> ${escapeHtml(t.completionNote)}</div>`
+        : '';
+
+      return `
+        <li class="todo${overdueCls}${doneCls}">
+          <div class="checkbox${t.done ? ' checked' : ''}" data-id="${t.id}"></div>
+          <div class="todo-body">
+            <div class="todo-text" data-id="${t.id}">${escapeHtml(t.text)}</div>
+            ${dueBanner}
+            ${meta.length ? `<div class="todo-meta">${meta.join('')}</div>` : ''}
+            ${noteBlock}
+            ${completionNoteBlock}
+          </div>
+          <div class="todo-actions">
+            <button class="icon-btn edit-btn" data-id="${t.id}" title="수정">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          </div>
+        </li>
+      `;
+    }
+
+    // 이름 → 일관된 색상 매핑 (해시 기반)
+    function nameColor(name) {
+      const palette = ['#c8412a', '#b8941f', '#6b8e5a', '#5a7d8e', '#8a5e9c', '#a35a78', '#d27b2e', '#4a7b6e'];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash) + name.charCodeAt(i);
+        hash |= 0;
+      }
+      return palette[Math.abs(hash) % palette.length];
+    }
+
+    function emptyMessage() {
+      if (currentFilter === 'done') return '완료된 일이 없습니다';
+      if (currentFilter === 'today') return '오늘 할 일이 없습니다';
+      if (currentFilter === 'overdue') return '지난 일이 없습니다';
+      if (currentFilter === 'active') return '모두 끝냈습니다';
+      return '아직 적은 일이 없습니다';
+    }
+
+    /* =========================================================
+       유틸
+       ========================================================= */
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function priorityLabel(p) { return p === 'high' ? '높음' : p === 'mid' ? '보통' : '낮음'; }
+    function repeatLabel(r) { return r === 'daily' ? '매일' : r === 'weekly' ? '매주' : '매월'; }
+
+    function isToday(due) {
+      if (!due) return false;
+      const d = new Date(due);
+      const n = new Date();
+      return d.getFullYear() === n.getFullYear() &&
+             d.getMonth() === n.getMonth() &&
+             d.getDate() === n.getDate();
+    }
+    function isOverdue(due) {
+      if (!due) return false;
+      return new Date(due).getTime() < Date.now();
+    }
+    function formatDue(due) {
+      const d = new Date(due);
+      const n = new Date();
+      const sameYear = d.getFullYear() === n.getFullYear();
+      const sameDay = isToday(due);
+      const pad = (x) => String(x).padStart(2, '0');
+      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      if (sameDay) return `오늘 ${time}`;
+      if (sameYear) return `${d.getMonth()+1}/${d.getDate()} ${time}`;
+      return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} ${time}`;
+    }
+
+    /* =========================================================
+       필터 / 추가
+       ========================================================= */
+    $('filters').addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-chip');
+      if (!btn) return;
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+
+    const newInput = $('newTodoInput');
+    $('addBtn').addEventListener('click', submitNew);
+    // Enter = 제출, Shift+Enter = 줄바꿈 (메모장처럼)
+    // 한글 IME 입력 중에는 제출하지 않음 (keyCode 229 = IME 처리 중)
+    newInput.addEventListener('keydown', (e) => {
+      // Shift+Enter는 무조건 브라우저 기본 동작(줄바꿈)에 맡김
+      if (e.key === 'Enter' && e.shiftKey) {
+        return; // preventDefault 안 함 → textarea 줄바꿈 자연스럽게 동작
+      }
+      // 그냥 Enter: 제출. 단, IME 조합 중이면 패스
+      if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        submitNew();
+      }
+    });
+    // 입력 내용에 따라 textarea 높이 자동 조절
+    function autoResize() {
+      newInput.style.height = 'auto';
+      newInput.style.height = Math.min(newInput.scrollHeight, 160) + 'px';
+    }
+    newInput.addEventListener('input', autoResize);
+
+    function submitNew() {
+      const text = newInput.value.trim();
+      if (!text) return;
+      addTodo({
+        text,
+        due: $('optDue').value || null,
+        priority: $('optPriority').value || null,
+        category: $('optCategory').value.trim() || null,
+        repeat: $('optRepeat').value || null
+      });
+      newInput.value = '';
+      autoResize();
+      $('optDue').value = '';
+      // Flatpickr 인스턴스가 있으면 그것도 초기화
+      if (optDuePicker) optDuePicker.clear();
+      $('optPriority').value = '';
+      $('optCategory').value = '';
+      $('optRepeat').value = '';
+      $('optionsPanel').classList.remove('show');
+      $('toggleOptions').classList.remove('active');
+      newInput.focus();
+    }
+
+    $('toggleOptions').addEventListener('click', () => {
+      $('optionsPanel').classList.toggle('show');
+      $('toggleOptions').classList.toggle('active');
+    });
+
+    /* =========================================================
+       편집 모달
+       ========================================================= */
+    function openEdit(id) {
+      const t = todos.find(x => x.id === id);
+      if (!t) return;
+      editingId = id;
+      $('editText').value = t.text || '';
+      if (editDuePicker) {
+        if (t.due) editDuePicker.setDate(t.due, false);
+        else editDuePicker.clear();
+      } else {
+        $('editDue').value = t.due || '';
+      }
+      $('editPriority').value = t.priority || '';
+      $('editCategory').value = t.category || '';
+      $('editRepeat').value = t.repeat || '';
+      $('editNote').value = t.note || '';
+      $('editCompletionNote').value = t.completionNote || '';
+      // 완료된 항목에만 완료 코멘트 필드 표시
+      $('editCompletionWrap').style.display = t.done ? '' : 'none';
+      $('editModal').classList.add('show');
+    }
+    $('cancelEditBtn').addEventListener('click', () => $('editModal').classList.remove('show'));
+    $('saveEditBtn').addEventListener('click', async () => {
+      if (!editingId) return;
+      const t = todos.find(x => x.id === editingId);
+      const patch = {
+        text: $('editText').value.trim(),
+        due: $('editDue').value || null,
+        priority: $('editPriority').value || null,
+        category: $('editCategory').value.trim() || null,
+        repeat: $('editRepeat').value || null,
+        note: $('editNote').value.trim().slice(0, 500) || null
+      };
+      if (t && t.done) {
+        patch.completionNote = $('editCompletionNote').value.trim().slice(0, 200) || null;
+      }
+      await updateTodo(editingId, patch);
+      $('editModal').classList.remove('show');
+      editingId = null;
+    });
+    $('deleteBtn').addEventListener('click', async () => {
+      if (!editingId) return;
+      if (!confirm('정말 삭제할까요?')) return;
+      await removeTodo(editingId);
+      $('editModal').classList.remove('show');
+      editingId = null;
+    });
+
+    /* =========================================================
+       설정
+       ========================================================= */
+    $('settingsBtn').addEventListener('click', () => {
+      $('currentName').value = userName;
+      $('currentSpace').value = spaceCode;
+      $('settingsModal').classList.add('show');
+    });
+    $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+    $('saveSettingsBtn').addEventListener('click', () => {
+      const newName = $('currentName').value.trim();
+      if (newName.length < 1) {
+        toast('이름을 입력해 주세요');
+        return;
+      }
+      userName = newName.slice(0, 20);
+      localStorage.setItem('jotter.name', userName);
+      $('whoami').textContent = userName;
+      $('settingsModal').classList.remove('show');
+      toast('이름이 저장되었습니다');
+    });
+    $('changeSpaceBtn').addEventListener('click', () => {
+      if (!confirm('현재 공간에서 나가시겠습니까? 데이터는 서버에 남아 있어 다시 들어오면 그대로입니다.')) return;
+      localStorage.removeItem('jotter.space');
+      // 이름은 유지
+      if (unsubscribe) unsubscribe();
+      location.reload();
+    });
+    // 로그아웃 — 이름과 공간 코드 모두 지움 (초기 setup 화면으로)
+    $('logoutBtn').addEventListener('click', () => {
+      if (!confirm('로그아웃하시겠습니까?\n이 기기에서 이름과 공간 코드가 모두 지워집니다.\n(서버 데이터는 그대로 남으니, 같은 코드로 다시 들어오면 복구됩니다.)')) return;
+      localStorage.removeItem('jotter.space');
+      localStorage.removeItem('jotter.name');
+      if (unsubscribe) unsubscribe();
+      location.reload();
+    });
+
+    /* =========================================================
+       알림 / 리마인더
+       ========================================================= */
+    async function requestNotificationPermission(forceAsk) {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'default' || forceAsk) {
+        try { await Notification.requestPermission(); } catch (_) {}
+      }
+    }
+    $('notifBtn').addEventListener('click', async () => {
+      await requestNotificationPermission(true);
+      if (Notification.permission === 'granted') {
+        toast('알림이 켜졌습니다');
+        new Notification('Jotter', { body: '알림이 정상적으로 작동합니다.' });
+      } else {
+        toast('브라우저에서 알림 권한을 허용해 주세요');
+      }
+    });
+
+    const shown = new Set();
+    function checkReminders() {
+      const now = Date.now();
+      let overdueCount = 0;
+      let firstOverdueText = '';
+      todos.forEach(t => {
+        if (t.done || !t.due) return;
+        const dueT = new Date(t.due).getTime();
+        if (isNaN(dueT)) return;
+        // 지난 항목
+        if (dueT < now) {
+          overdueCount++;
+          if (!firstOverdueText) firstOverdueText = t.text;
+        }
+        // 마감 5분 전 ~ 마감 시점 알림
+        const diff = dueT - now;
+        if (diff > 0 && diff <= 5 * 60 * 1000 && !shown.has(t.id + ':soon')) {
+          shown.add(t.id + ':soon');
+          notify('곧 시작', t.text);
+        }
+        // 마감 직후 알림
+        if (diff <= 0 && diff > -2 * 60 * 1000 && !shown.has(t.id + ':due')) {
+          shown.add(t.id + ':due');
+          notify('지금 할 시간', t.text);
+        }
+      });
+      // 지난 일 배너
+      if (overdueCount > 0) {
+        $('reminderMsg').textContent = overdueCount === 1
+          ? `"${firstOverdueText}" 일이 지났습니다`
+          : `지난 할 일이 ${overdueCount}건 있습니다`;
+        $('reminderBanner').classList.add('show');
+      } else {
+        $('reminderBanner').classList.remove('show');
+      }
+    }
+    $('dismissReminder').addEventListener('click', () => {
+      $('reminderBanner').classList.remove('show');
+    });
+
+    function notify(title, body) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(title, {
+            body,
+            icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231a1a1a'/%3E%3Cpath d='M28 50 L44 66 L72 36' stroke='%23f5e6c8' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+            tag: title + ':' + body
+          });
+        } catch (_) {}
+      }
+      // 페이지 내에서도 표시
+      $('reminderMsg').textContent = `${title} — ${body}`;
+      $('reminderBanner').classList.add('show');
+    }
+
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toast._tid);
+      toast._tid = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // PWA 서비스워커
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
